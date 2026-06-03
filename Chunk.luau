@@ -10,7 +10,8 @@ local stepped = runService.RenderStepped
 local Room = require(script.Room)
 local Door = require(script.Door)
 local Chunk = Utilities.class({className = "Chunk", doorDebounce = false, indoors = false}, function(self)
-  local container = Instance.new("Folder", storage)
+  local container = Instance.new("Folder")
+  container.Parent = storage
   self.map.Parent = container
   for _,room in pairs(self.rooms) do
     room.Parent = container
@@ -41,14 +42,14 @@ local Chunk = Utilities.class({className = "Chunk", doorDebounce = false, indoor
       return 
     end
     local p = player.Character.HumanoidRootPart.CFrame * Vector3.new(0, 1.5, 0)
-    p = Vector3.new(math.max(self.room.indoorCamMinX, math.min(self.room.indoorCamMaxX, p.x)), p.y, p.z)
+    p = Vector3.new(math.max(self.room.indoorCamMinX, math.min(self.room.indoorCamMaxX, p.X)), p.Y, p.Z)
     local from = p + indoorCamOffset
-    workspace.CurrentCamera.CoordinateFrame = CFrame.new(from, p)
+    workspace.CurrentCamera.CFrame = CFrame.new(from, p)
   end
 
     self.getIndoorCamCFrame = function()
     local p = player.Character.HumanoidRootPart.CFrame * Vector3.new(0, 1.5, 0)
-    p = Vector3.new(math.max(self.room.indoorCamMinX, math.min(self.room.indoorCamMaxX, p.x)), p.y, p.z)
+    p = Vector3.new(math.max(self.room.indoorCamMinX, math.min(self.room.indoorCamMaxX, p.X)), p.Y, p.Z)
     local from = p + indoorCamOffset
     return CFrame.new(from, p)
   end
@@ -72,19 +73,18 @@ Chunk.setDay = function(self, isDay, model)
   if _p.Menu.options.reduceGraphics then
     isDay = true
   end
-  local set = function(obj)
+  local set -- forward declare so recursion works
+  set = function(obj)
     if obj.Name == "Light" and obj:IsA("BasePart") then
-      if not isDay or not Enum.Material.SmoothPlastic then
+      if not isDay then
         obj.Material = Enum.Material.Neon
         for _,light in pairs(obj:GetChildren()) do
           if light:IsA("Light") then
             light.Enabled = not isDay
           end
         end
-        do
-          for _,ch in pairs(obj:GetChildren()) do
-            l_0_3_r3(ch)
-          end
+        for _,ch in pairs(obj:GetChildren()) do
+          set(ch)
         end
       end
     end
@@ -129,9 +129,9 @@ Chunk.changedRegions = function(self, newRegion)
         print("zeroing music")
         music.Volume = 0
         local cn = nil
-        cn = music.Changed:connect(function()
+        cn = music.Changed:Connect(function()
     if not self.StartMusicAtZeroVolume then
-      cn:disconnect()
+      cn:Disconnect()
       return 
     end
     if music.Volume > 0 then
@@ -148,13 +148,13 @@ Chunk.changedRegions = function(self, newRegion)
       end
       local thread = {}
       self.regionThread = thread
-      local board = create("ImageLabel")({create("Frame")({Name = "Container", BackgroundTransparency = 1, Size = UDim2.new(0.9, 0, 0.5, 0), Position = UDim2.new(0.05, 0, 0.25, 0), ClipsDescendants = true}); BackgroundTransparency = 1, Image = "rbxassetid://293734330", SizeConstraint = Enum.SizeConstraint.RelativeYY, Size = UDim2.new(0.6, 0, 0.225, 0), Parent = Utilities.gui})
+      local board = create("ImageLabel")({create("Frame")({Name = "Container", BackgroundTransparency = 1, Size = UDim2.new(0.9, 0, 0.5, 0), Position = UDim2.new(0.05, 0, 0.25, 0), ClipsDescendants = true})})
       if regionData.SignColor then
         board.ImageColor3 = regionData.SignColor
       end
       local text = create("Frame")({BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0.6, 0), ZIndex = 2, Parent = board.Container})
       local written = Utilities.Write(newRegion.Name)({Frame = text, Scaled = true, TextXAlignment = Enum.TextXAlignment.Left})
-      spawn(function()
+      task.spawn(function()
     local limit = written.MaxBounds.X + board.Container.AbsoluteSize.X
     local start = tick()
     local rate = 3
@@ -168,7 +168,7 @@ Chunk.changedRegions = function(self, newRegion)
       if limit < p then
         break
       end
-      stepped:wait()
+      stepped:Wait()
     end
     do
       Utilities.Tween(0.5, "easeOutCubic", function(a)
@@ -274,7 +274,7 @@ Chunk.getRoom = function(self, id, door, level)
   if self.roomData and self.roomData[id] and self.roomData[id].NPCs then
     for _,nd in pairs(self.roomData[id].NPCs) do
       local model = _p.storage.Models.NPCs[nd.appearance]:Clone()
-      Utilities.MoveModel(model.HumanoidRootPart, CFrame.new(room.model.Base.Position + nd.cframe.p + Vector3.new(0, room.model.Base.Size.Y / 2 + 3, 0)) * (nd.cframe - nd.cframe.p), true)
+      Utilities.MoveModel(model.HumanoidRootPart, CFrame.new(room.model.Base.Position + nd.cframe.Position + Vector3.new(0, room.model.Base.Size.Y / 2 + 3, 0)) * (nd.cframe - nd.cframe.Position), true)
       model.Parent = room.model
       local npc = _p.NPC:new(model)
       npc:Animate()
@@ -291,14 +291,14 @@ Chunk.getRoom = function(self, id, door, level)
       do
         local exitCon = nil
         do
-          exitCon = exitPart.Touched:connect(function(p)
+          exitCon = exitPart.Touched:Connect(function(p)
     if self.doorDebounce or not p or not p:IsDescendantOf(player.Character) or not p.Parent or p.Parent:IsA("Hat") then
       return 
     end
     if not _p.MasterControl.WalkEnabled then
       return 
     end
-    exitCon:disconnect()
+    exitCon:Disconnect()
     if door then
       self.doorDebounce = true
       self:exitDoor(door)
@@ -313,11 +313,11 @@ Chunk.getRoom = function(self, id, door, level)
               local chunkId = part.Name:sub(9)
               if chunkId ~= self.id then
                 local touchCon = nil
-                touchCon = part.Touched:connect(function(p)
+                touchCon = part.Touched:Connect(function(p)
     if self.doorDebounce or not p or not p:IsDescendantOf(player.Character) or not p.Parent or p.Parent:IsA("Hat") then
       return 
     end
-    touchCon:disconnect()
+    touchCon:Disconnect()
     self.doorDebounce = true
     MasterControl.WalkEnabled = false
     MasterControl:Stop()
@@ -356,7 +356,7 @@ Chunk.stackSubRoom = function(self, id, button, noAnim)
   end
   if not noAnim then
     Utilities.Teleport(self.room.Entrance.CFrame * CFrame.new(0, 3, 3.5) * CFrame.Angles(0, math.pi, 0))
-    wait(0.5)
+    task.wait(0.5)
     Utilities.FadeIn(1)
     MasterControl.WalkEnabled = true
   end
@@ -382,7 +382,7 @@ Chunk.popSubRoom = function(self, noAnim)
     Utilities.Teleport(exitcf)
     local elapsed = tick() - st
     if elapsed < 0.5 then
-      wait(0.5 - elapsed)
+      task.wait(0.5 - elapsed)
     end
     Utilities.FadeIn(1)
     MasterControl.WalkEnabled = true
@@ -401,15 +401,16 @@ Chunk.enterDoor = function(self, door)
 )
   local y = player.Character.HumanoidRootPart.Position.Y
   local walkTo1 = door.Position + Vector3.new(0, y - door.Position.Y, 0)
-  local walkTo2 = door.Position + Vector3.new(0, y - door.Position.Y, 0) - door.CFrame.lookVector * 5
+  local walkTo2 = door.Position + Vector3.new(0, y - door.Position.Y, 0) - door.CFrame.LookVector * 5
   local cam = workspace.CurrentCamera
-  local camF0 = cam.Focus.p
-  local camC0 = cam.CoordinateFrame.p
+  -- Camera.Focus was removed; derive the look-at point from the camera CFrame
+  local camF0 = cam.CFrame.Position + cam.CFrame.LookVector * 20
+  local camC0 = cam.CFrame.Position
   local camF1 = door.Position
-  local camC1 = door.Position + door.CFrame * CFrame.Angles(math.rad(angle or 35), 0, 0).lookVector * 20
+  local camC1 = door.Position + door.CFrame * CFrame.Angles(math.rad(angle or 35), 0, 0).LookVector * 20
   cam.CameraType = Enum.CameraType.Scriptable
   Utilities.Tween(0.3, "easeOutCubic", function(a)
-    cam.CoordinateFrame = CFrame.new(camC0:Lerp(camC1, a), camF0:Lerp(camF1, a))
+    cam.CFrame = CFrame.new(camC0:Lerp(camC1, a), camF0:Lerp(camF1, a))
   end
 )
   local event = _p.Events["onDoorFocused_" .. door.id]
@@ -420,7 +421,7 @@ Chunk.enterDoor = function(self, door)
   end
   door:open(0.75)
   player:Move(walkTo1 - player.Character.HumanoidRootPart.Position, false)
-  wait(0.1)
+  task.wait(0.1)
   player:Move(walkTo2 - player.Character.HumanoidRootPart.Position, false)
   local roomMusicId, roomMusicVolume = nil, nil
   if door.id == "PokeCenter" then
@@ -439,7 +440,7 @@ Chunk.enterDoor = function(self, door)
     roomMusicVolume = self.roomData[door.id].MusicVolume
   end
 )
-  spawn(function()
+  task.spawn(function()
     _p.MusicManager:fadeToVolume("top", roomMusicId and 0 or 0.3, 1)
   end
 )
@@ -466,7 +467,7 @@ Chunk.enterDoor = function(self, door)
   door:close()
   self.indoorCamFunc()
   self:bindIndoorCam()
-  wait(0.5)
+  task.wait(0.5)
   if roomMusicId then
     _p.MusicManager:stackMusic(roomMusicId, "RoomMusic", roomMusicVolume)
   end
@@ -491,12 +492,12 @@ Chunk.exitDoor = function(self, door, alreadyFaded)
   end
 )
   self:unbindIndoorCam()
-  local walkFrom = door.CFrame * CFrame.new(0, -door.Size.y / 2 + 3, 2)
-  local walkTo = door.Position + door.CFrame.lookVector * 5
+  local walkFrom = door.CFrame * CFrame.new(0, -door.Size.Y / 2 + 3, 2)
+  local walkTo = door.Position + door.CFrame.LookVector * 5
   local cam = workspace.CurrentCamera
   local camF0 = door.Position
-  local camC0 = door.Position + door.CFrame * CFrame.Angles(math.rad(angle or 35), 0, 0).lookVector * 20
-  cam.CoordinateFrame = CFrame.new(camC0, camF0)
+  local camC0 = door.Position + door.CFrame * CFrame.Angles(math.rad(angle or 35), 0, 0).LookVector * 20
+  cam.CFrame = CFrame.new(camC0, camF0)
   door:open()
   Utilities.Teleport(walkFrom)
   if self.room then
@@ -504,12 +505,12 @@ Chunk.exitDoor = function(self, door, alreadyFaded)
   end
   self.room = nil
   self.roomStack = {}
-  wait(0.5)
-  spawn(function()
+  task.wait(0.5)
+  task.spawn(function()
     _p.MusicManager:fadeToVolume("top", 1, 1)
   end
 )
-  spawn(function()
+  task.spawn(function()
     Utilities.FadeIn(1)
   end
 )
@@ -517,10 +518,10 @@ Chunk.exitDoor = function(self, door, alreadyFaded)
   local torso = player.Character.HumanoidRootPart
   local prox = nil
   repeat
-    prox = walkTo - torso.Position.magnitude
+    prox = (walkTo - torso.Position).Magnitude
     player:Move((walkTo - torso.Position) * flat, false)
-    stepped:wait()
-  until prox < walkTo - torso.Position.magnitude or (walkTo - torso.Position) * flat.magnitude < 0.1
+    stepped:Wait()
+  until prox < (walkTo - torso.Position).Magnitude or ((walkTo - torso.Position) * flat).Magnitude < 0.1
   MasterControl:Stop()
   door:close(0.75)
   self.indoors = false
@@ -530,17 +531,17 @@ Chunk.exitDoor = function(self, door, alreadyFaded)
     local cam = workspace.CurrentCamera
     do
       local headP = player.Character.Head.Position
-      local camGoal = CFrame.new(headP + cam.CoordinateFrame.p - headP.unit * 12.5, headP)
-      local _, lerp = Utilities.lerpCFrame(cam.CoordinateFrame, camGoal)
+      local camGoal = CFrame.new(headP + cam.CFrame.Position - headP.Unit * 12.5, headP)
+      local _, lerp = Utilities.lerpCFrame(cam.CFrame, camGoal)
       Utilities.Tween(0.8, "easeOutCubic", function(a)
-    cam.CoordinateFrame = lerp(a)
+    cam.CFrame = lerp(a)
   end
 )
     end
   else
     do
       Utilities.Tween(0.2, "easeOutCubic", function(a)
-    cam.CoordinateFrame = CFrame.new(camC0:Lerp(player.Character.Head.Position + camC0 - camF0.unit * 12.5, a), camF0:Lerp(player.Character.Head.Position, a))
+    cam.CFrame = CFrame.new(camC0:Lerp(player.Character.Head.Position + camC0 - camF0.Unit * 12.5, a), camF0:Lerp(player.Character.Head.Position, a))
   end
 )
       cam.CameraType = Enum.CameraType.Custom
@@ -552,7 +553,7 @@ end
 Chunk.hookupDoor = function(self, doorModel)
   local door = Door:new(doorModel)
   table.insert(self.doors, door)
-  doorModel.Main.Touched:connect(function(p)
+  doorModel.Main.Touched:Connect(function(p)
     if door.disabled or self.doorDebounce or not p or not p:IsDescendantOf(player.Character) or not p.Parent or p.Parent:IsA("Hat") then
       return 
     end
@@ -585,7 +586,7 @@ Chunk.hookupItem = function(self, itemModel)
     _p.DataManager:queueDataToCache({"Items", rc4(id)})
   end
   local db = false
-  part.Touched:connect(function(p)
+  part.Touched:Connect(function(p)
     if db or not MasterControl.WalkEnabled or not p or not p:IsDescendantOf(player.Character) or not p.Parent or p.Parent:IsA("Hat") then
       return 
     end
@@ -593,34 +594,35 @@ Chunk.hookupItem = function(self, itemModel)
     MasterControl.WalkEnabled = false
     MasterControl:Stop()
     local item = nil
-    if tm >= 10 or not "0" then
-      item = {name = "TM" .. (not tm or "") .. tm}
+    if tm then
+      item = {name = "TM" .. tostring(tm)}
+    else
       item = _p.DataManager:getData("Items", rc4(id))
-      local pos = part.Position + Vector3.new(0, -0.25, 0)
-      local cf = hinge.CFrame
-      delay(0.2, function()
+    end
+    local pos = part.Position + Vector3.new(0, -0.25, 0)
+    local cf = hinge.CFrame
+    task.delay(0.2, function()
       for i = 1, 12 do
-        _p.Particles:new({Position = pos, Velocity = Vector3.new(0, 5, 0), VelocityVariation = 30, Acceleration = Vector3.new(0, -5, 0), Size = 0.3, Image = 286854973, Color = Color3.new(0.9, 0.9, 0.9), Lifetime = 3})
+        _p.Particles:new({Position = pos, Velocity = Vector3.new(0, 5, 0), VelocityVariation = 30, Acceleration = Vector3.new(0, -5, 0), Size = 0.3, Image = 286854973, Color = Color3.new(0.9, 0.9, 0.9)})
       end
     end
 )
-      Utilities.Tween(0.5, "easeOutCubic", function(a)
+    Utilities.Tween(0.5, "easeOutCubic", function(a)
       Utilities.MoveModel(hinge, cf * CFrame.Angles(0, 0, -math.pi / 2 * a))
     end
 )
-      Utilities.sound(288899943, nil, nil, 10)
-      local chat = _p.NPCChat
-      chat:say(_p.PlayerData.trainerName .. " found a " .. item.name .. "!")
-      itemModel:Destroy()
-      chat:say(_p.PlayerData.trainerName .. " put the " .. item.name .. " in the Bag.")
-      if tm then
-        _p.PlayerData.tms = _p.BitBuffer.SetBit(_p.PlayerData.tms, tm, true)
-      else
-        _p.PlayerData.obtainedItems = _p.BitBuffer.SetBit(_p.PlayerData.obtainedItems, obtainableItemNum, 1)
-        _p.PlayerData:addBagItems({id = id, quantity = 1})
-      end
-      MasterControl.WalkEnabled = true
+    Utilities.sound(288899943, nil, nil, 10)
+    local chat = _p.NPCChat
+    chat:say(_p.PlayerData.trainerName .. " found a " .. item.name .. "!")
+    itemModel:Destroy()
+    chat:say(_p.PlayerData.trainerName .. " put the " .. item.name .. " in the Bag.")
+    if tm then
+      _p.PlayerData.tms = _p.BitBuffer.SetBit(_p.PlayerData.tms, tm, true)
+    else
+      _p.PlayerData.obtainedItems = _p.BitBuffer.SetBit(_p.PlayerData.obtainedItems, obtainableItemNum, 1)
+      _p.PlayerData:addBagItems({id = id, quantity = 1})
     end
+    MasterControl.WalkEnabled = true
   end
 )
 end
@@ -644,12 +646,12 @@ Chunk.init = function(self)
     end
   end
   _p.NPC:collectNPCs(self.map, self.npcs)
-  delay(0.5, function()
+  task.delay(0.5, function()
     while self.regions do
       if not self.indoors then
         self:checkRegion()
       end
-      wait(0.5)
+      task.wait(0.5)
     end
   end
 )
@@ -669,7 +671,7 @@ Chunk.destroy = function(self)
 )
   local music = self.Music
   if music then
-    spawn(function()
+    task.spawn(function()
     local v = music.Volume
     Utilities.Tween(0.5, nil, function(a)
       music.Volume = v * (1 - a)
@@ -716,4 +718,3 @@ Chunk.destroy = function(self)
 end
 
 return Chunk
-
