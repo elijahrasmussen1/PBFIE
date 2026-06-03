@@ -343,11 +343,11 @@ end
             util.lookBackAtMe = function(t, leaveCameraScriptable)
   local cam = workspace.CurrentCamera
   local headP = player.Character.Head.Position
-  local camGoal = CFrame.new(headP + cam.CFrame.p - headP.unit * 12.5, headP)
+  local camGoal = CFrame.new(headP + cam.CFrame.Position - headP.unit * 12.5, headP)
   local _, lerp = util.lerpCFrame(cam.CFrame, camGoal)
   util.Tween(t or 0.8, "easeOutCubic", function(a)
     local cf = lerp(a)
-    cam.CFrame = CFrame.new(cf.p, cf.p + cf.LookVector)
+    cam.CFrame = CFrame.new(cf.Position, cf.Position + cf.LookVector)
   end
 )
   if not leaveCameraScriptable then
@@ -372,7 +372,7 @@ end
     else
       cf = lerp(a)
     end
-    cam.CFrame = CFrame.new(cf.p, cf.p + cf.LookVector)
+    cam.CFrame = CFrame.new(cf.Position, cf.Position + cf.LookVector)
   end
 )
 end
@@ -385,7 +385,7 @@ end
   end
   local thisThread = {}
   threads[torso] = thisThread
-  while torso and torso.Parent and (torso.Position - newCF.p).magnitude > 5 and threads[torso] == thisThread do
+  while torso and torso.Parent and (torso.Position - newCF.Position).magnitude > 5 and threads[torso] == thisThread do
     torso.CFrame = newCF
     task.wait()
   end
@@ -512,9 +512,9 @@ end
   local cam = workspace.CurrentCamera
   local cf = CFrame.new(pos, pos + cam.CFrame.LookVector)
   local p = cam:WorldToScreenPoint(pos)
-  local p1 = cam:WorldToScreenPoint(cf * CFrame.new(-size / 2, -size / 2, 0).p)
+  local p1 = cam:WorldToScreenPoint((cf * CFrame.new(-size / 2, -size / 2, 0)).Position)
   do
-    local p2 = cam:WorldToScreenPoint(cf * CFrame.new(size / 2, size / 2, 0).p)
+    local p2 = cam:WorldToScreenPoint((cf * CFrame.new(size / 2, size / 2, 0)).Position)
     do return Vector2.new(p.x, p.y), p1 - p2.magnitude / math.sqrt(2), p.z > 0 end
     -- DECOMPILER ERROR: 1 unprocessed JMP targets
   end
