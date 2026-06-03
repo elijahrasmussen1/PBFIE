@@ -343,7 +343,7 @@ end
             util.lookBackAtMe = function(t, leaveCameraScriptable)
   local cam = workspace.CurrentCamera
   local headP = player.Character.Head.Position
-  local camGoal = CFrame.new(headP + cam.CFrame.Position - headP.unit * 12.5, headP)
+  local camGoal = CFrame.new(headP + cam.CFrame.Position - headP.Unit * 12.5, headP)
   local _, lerp = util.lerpCFrame(cam.CFrame, camGoal)
   util.Tween(t or 0.8, "easeOutCubic", function(a)
     local cf = lerp(a)
@@ -515,7 +515,7 @@ end
   local p1 = cam:WorldToScreenPoint((cf * CFrame.new(-size / 2, -size / 2, 0)).Position)
   do
     local p2 = cam:WorldToScreenPoint((cf * CFrame.new(size / 2, size / 2, 0)).Position)
-    do return Vector2.new(p.x, p.y), p1 - p2.magnitude / math.sqrt(2), p.z > 0 end
+    do return Vector2.new(p.x, p.y), (p1 - p2).magnitude / math.sqrt(2), p.z > 0 end
     -- DECOMPILER ERROR: 1 unprocessed JMP targets
   end
 end
