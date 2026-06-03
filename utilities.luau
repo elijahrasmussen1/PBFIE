@@ -3,7 +3,7 @@ for i = 1, 10 do
   if player then
     break
   end
-  wait()
+  task.wait()
   player = game:GetService("Players").LocalPlayer
 end
 do
@@ -204,7 +204,7 @@ end
   local res = {}
   for k,v in pairs(t) do
     if type(v) == "table" then
-      v = l_0_r8(v)
+      v = deepcopy(v)
     end
     res[k] = v
   end
@@ -222,9 +222,7 @@ end
 end
 
             util.trim = function(str)
-  if string.match(str, "^%s+(%S+)") or not string.match(str, "(%S+)%s+$") then
-    return str
-  end
+  return str:match("^%s*(.-)%s*$")
 end
 
             util.Create = function(instanceType)
@@ -237,7 +235,7 @@ end
         v.Parent = obj
       else
         if type(v) == "function" then
-          obj[k]:connect(v)
+        obj[k]:Connect(v)
         else
           obj[k] = v
         end
@@ -345,11 +343,11 @@ end
             util.lookBackAtMe = function(t, leaveCameraScriptable)
   local cam = workspace.CurrentCamera
   local headP = player.Character.Head.Position
-  local camGoal = CFrame.new(headP + cam.CoordinateFrame.p - headP.unit * 12.5, headP)
-  local _, lerp = util.lerpCFrame(cam.CoordinateFrame, camGoal)
+  local camGoal = CFrame.new(headP + cam.CFrame.p - headP.unit * 12.5, headP)
+  local _, lerp = util.lerpCFrame(cam.CFrame, camGoal)
   util.Tween(t or 0.8, "easeOutCubic", function(a)
     local cf = lerp(a)
-    cam.CoordinateFrame = CFrame.new(cf.p, cf.p + cf.lookVector)
+    cam.CFrame = CFrame.new(cf.p, cf.p + cf.LookVector)
   end
 )
   if not leaveCameraScriptable then
@@ -359,7 +357,7 @@ end
 
             util.lookAt = function(p, f, t)
   local cam = workspace.CurrentCamera
-  local ocf = cam.CoordinateFrame
+  local ocf = cam.CFrame
   local dynamic = false
   local lerp = nil
   if type(f) == "function" then
@@ -374,7 +372,7 @@ end
     else
       cf = lerp(a)
     end
-    cam.CoordinateFrame = CFrame.new(cf.p, cf.p + cf.lookVector)
+    cam.CFrame = CFrame.new(cf.p, cf.p + cf.LookVector)
   end
 )
 end
@@ -387,9 +385,9 @@ end
   end
   local thisThread = {}
   threads[torso] = thisThread
-  while torso and torso.Parent and torso.Position - newCF.p.magnitude > 5 and threads[torso] == thisThread do
+  while torso and torso.Parent and (torso.Position - newCF.p).magnitude > 5 and threads[torso] == thisThread do
     torso.CFrame = newCF
-    wait()
+    task.wait()
   end
 end
 
@@ -408,7 +406,7 @@ end
   local st = tick()
   fn(0)
   while 1 do
-    stepped:wait()
+    stepped:Wait()
     local et = tick() - st
     if duration <= et then
       fn(1)
@@ -436,7 +434,7 @@ end
         p.CFrame = newcf:toWorldSpace(part.CFrame:toObjectSpace(p.CFrame))
       else
         if p:IsA("Model") and r then
-          l_0_26_r3(part, newcf, p, true)
+          MMRecursive(part, newcf, p, true)
         end
       end
     end
@@ -453,12 +451,20 @@ end
     ignoreFunction = ignoreList
     ignoreList = {}
   end
+  local raycastParams = RaycastParams.new()
+  raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+  raycastParams.FilterDescendantsInstances = ignoreList
   local hit, pos, normal, material = nil, nil, nil, nil
   repeat
-    hit = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    local result = workspace:Raycast(ray.Origin, ray.Direction, raycastParams)
+    hit = result and result.Instance
     if hit then
+      pos = result.Position
+      normal = result.Normal
+      material = result.Material
       if ignoreFunction(hit) then
         table.insert(ignoreList, hit)
+        raycastParams.FilterDescendantsInstances = ignoreList
       else
         return hit, pos, normal, material
       end
@@ -481,14 +487,14 @@ end
     if not f then
       error("connect(nil)", 2)
     end
-    return mSignaler.Event:connect(function()
+    return mSignaler.Event:Connect(function()
       f(unpack(mArgData, 1, mArgDataCount))
     end
 )
   end
 
   sig.wait = function(self)
-    mSignaler.Event:wait()
+    mSignaler.Event:Wait()
     assert(mArgData, "Missing arg data, likely due to :TweenSize/Position corrupting threadrefs.")
     return unpack(mArgData, 1, mArgDataCount)
   end
@@ -504,7 +510,7 @@ end
 
               util.extents = function(pos, size)
   local cam = workspace.CurrentCamera
-  local cf = CFrame.new(pos, pos + cam.CoordinateFrame.lookVector)
+  local cf = CFrame.new(pos, pos + cam.CFrame.LookVector)
   local p = cam:WorldToScreenPoint(pos)
   local p1 = cam:WorldToScreenPoint(cf * CFrame.new(-size / 2, -size / 2, 0).p)
   do
@@ -517,7 +523,7 @@ end
               util.sound = function(id, volume, playFrom, destroyAfter)
   local sound = util.Create("Sound")({SoundId = type(id) == "number" and "rbxassetid://" .. id or id, Volume = volume or 0.5, TimePosition = playFrom or 0, Parent = util.soundContainer or workspace})
   sound:Play()
-  delay(destroyAfter or 120, function()
+  task.delay(destroyAfter or 120, function()
     sound:Destroy()
   end
 )
@@ -619,13 +625,10 @@ end
   if typeX ~= type(y) then
     return false
   end
-  if rc4(x) ~= rc4(y) then
-    do
-      do return typeX ~= "table" end
-      do return x == y end
-      -- DECOMPILER ERROR: 3 unprocessed JMP targets
-    end
+  if typeX == "table" then
+    return x == y
   end
+  return rc4(x) == rc4(y)
 end
 
                 util.exclaim = function(object)
@@ -648,11 +651,10 @@ end
 
                 util.aOrAn = function(str, upper)
   local vowels = {a = true, e = true, i = true, o = true, u = true}
-  if vowels[str:sub(1, 1):lower()] and (not upper or not "An " .. str) then
-    do return "an " .. str end
-    if not upper or not "A " .. str then
-      return "a " .. str
-    end
+  if vowels[str:sub(1, 1):lower()] then
+    return (upper and "An " or "an ") .. str
+  else
+    return (upper and "A " or "a ") .. str
   end
 end
 
@@ -705,7 +707,7 @@ end
         for pos,val in pairs(t) do
           if type(val) == "table" then
             print(indent .. "[" .. pos .. "] => " .. tostring(val) .. " {")
-            l_0_42_r2(val, indent .. string.rep(" ", string.len(pos) + 8))
+            sub_print_r(val, indent .. string.rep(" ", string.len(pos) + 8))
             print(indent .. string.rep(" ", string.len(pos) + 6) .. "}")
           else
             if type(val) == "string" then
